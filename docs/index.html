@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<!-- Authors: Raghav Raj Mittal, Vishvak Murahari, Taha Merghani -->
+
+<!-- saved from url=(0087)https://www.cc.gatech.edu/classes/AY2019/cs7643_spring/assets/project_webpage_template/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+  <title>Deep Learning Class Project
+  | Georgia Tech | Spring 2019: CS 7643</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+<!-- Le styles -->
+  <link href="./deep_learning_project_files/bootstrap.css" rel="stylesheet">
+<style>
+body {
+padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+}
+.vis {
+color: #3366CC;
+}
+.data {
+color: #FF9900;
+}
+</style>
+
+<link href="./deep_learning_project_files/bootstrap-responsive.min.css" rel="stylesheet">
+</head>
+
+<body>
+<div class="container">
+<div class="page-header">
+
+<!-- Title and Name -->
+<h1>Everybody Dance Now -- </h1>
+<span style="font-size: 20px; line-height: 1.5em;"><strong>Taha Merghani, Raghav Raj Mittal, Vishvak Murahari</strong></span><br>
+<span style="font-size: 18px; line-height: 1.5em;">Spring 2019 CS 7643 Deep Learning: Class Project</span><br>
+<span style="font-size: 18px; line-height: 1.5em;">Georgia Tech</span>
+<hr>
+
+The code for this project can be found in <a href="https://github.gatech.edu/rmittal34/everybody_dance_now">this repository</a>. The code has been adapted from the following open source repositories:
+<br><a href="https://github.com/nyoki-mtl/pytorch-EverybodyDanceNow">Boiler Code for setting up pix2pixHD</a>
+<br><a href="https://github.com/NVIDIA/pix2pixHD/tree/20687df85d30e6fff5aafb29b7981923da9fd02f">Pix2pixHD official implementation</a>
+<br><a href="https://github.com/tensorboy/pytorch_Realtime_Multi-Person_Pose_Estimation/tree/681d16fa6eac64d8828affa477af78dd358381d2">Pose detection in Pytorch</a>
+
+<!-- Goal -->
+<h2>Abstract</h2>
+<!-- One or two sentences on the motivation behind the problem you are solving. One or two sentences
+ describing the approach you took. One or two sentences on the main result you obtained.  -->
+In this project, we attempt to recreate the paper '<a href='https://arxiv.org/abs/1808.07371'>Everybody Dance Now</a>' for motion transfer from a source video to a target subject.
+
+
+<br><br>
+<!-- Main Illustrative Figure -->
+<div style="text-align: center;">
+<img style="height: 600px;" alt="" src="./deep_learning_project_files/everybody_dance_now.png">
+<br>
+Example of motion transfer from source-video (left) to target-subjects (right)
+</div>
+
+<br><br>
+<!-- Introduction -->
+<h2>Introduction / Background / Motivation</h2>
+<h4>What did you try to do? What problem did you try to solve? Articulate your objectives using absolutely no jargon.</h4>
+In this project, we are trying to recreate a recent paper titled 'Everybody Dance Now' for 'do as I do' motion transfer.
+What this means is that given a source video of a person dancing (let's say, Bruno Mars), we wish to transfer the person's
+motions/performance to a target person (let's say you, the reader). The authors of the paper have not released their code, so it is our aim is to produce similar results to that of the paper.
+
+
+<br><br>
+<h4>How is it done today, and what are the limits of current practice?</h4>
+Majority of the early work in this domain produced results by manipulating existing video footage or speech of the target.
+For example, a nearest-neighbors search would output the frames of the target person that most closely resemble the input
+frame of the source person. Multiple new techniques were also adopted such as 3D motion transfer and unsupervised adversarial
+networks. More related work is explained in the Section 2 of the <a href='https://arxiv.org/abs/1808.07371'>paper</a>.
+
+<br><br>
+<h4>Who cares? If you are successful, what difference will it make?</h4>
+<ol>
+  <li>The code from the paper is not public, so if we were able to product similar results, we could contribute to the open-source
+community.</li>
+  <li>The applications of such technology are huge: film, TV, social media apps, music videos, advertising, memes. Essentially, it
+will allow videos to be produced in a relatively low-effort and cheap way.</li>
+  <li>It obviously also makes a difference to us too, knowing that we were able to reproduce a paper of this
+    nature in a short duration.</li>
+  <li>'Dance' becomes accessible. No one has to be a dancer to 'dance'. Everybody can dance now.</li>
+</ol>
+
+
+
+<br>
+<!-- Approach -->
+<h2>Approach</h2>
+<h4>What did you do exactly? How did you solve the problem? Why did you think it would be successful? Is anything new in your approach?</h4>
+For training, we would need to collect a video of the target person doing certain dance moves/motions in front of a static
+background. The length of this training video would be less than 20 minutes. Initially, we could simply use a youtube video
+of a person dancing to train the model. To train the model on ourselves though, we would need to record a video of ourselves
+too. Given the video is shot at 60 FPS (common option in modern cell phones), a 10 minute video will itself collect 36000
+frames to train on. Such a video should be sufficient to train the GAN, but a higher FPS and a longer video (~20 minutes)
+would likely produce better results. <br><br>
+
+To train this system, we will first collect 20 minutes of video of the target subject dancing. We will then run an open-sourced posed detector released by the authors of <a href='https://arxiv.org/pdf/1812.08008.pdf'>this paper</a> to find the pose at each frame. We then post-process these poses using smoothing techniques mentioned in the original paper to remove jitter. This gives us a dataset mapping poses to actual images. Let us refer to this as (x,y) where x represents pose and y represents the image. Our goal then is to learn a generator which generates images of the target subject given a pose. <br><br>
+
+For our baseline, we will first generate images given a pose using a CNN based architecture specified in the original paper. We will also a train a discriminator which calculates the probability of the input image being real given the pose. We will train the generator and discriminator networks by optimizing the adversarial GAN loss. According to the authors, we know that that simply optimizing the GAN loss led to poor results. Therefore, once we implement the baseline we will add a few additional tricks used by the authors. These tricks have been explained below.<br><br>
+
+<!-- Main Illustrative Figure -->
+<div style="text-align: center;">
+<img style="height: 300px;" alt="" src="./deep_learning_project_files/architecture_without_ts.png">
+<br>
+Architecture of pix2pixHD baseline
+</div>
+
+<br><br>
+To stabilize training, we first realize that we are training on the (x,y) pairs of the target subject and we know that G(x)
+should be similar to y, where G and D represent the Generator and Discriminator networks respectively. Therefore, we can
+find the VGG fc7 embeddings of both G(x) and y and then optimize on the L1 loss between these embeddings. The authors propose
+that the internal representation of the discriminator should be similar when either G(x) or y is passed as input. Therefore,
+we can add a layer-wise loss which optimizes the L1 loss of layer-wise representations obtained with G(x) and y.
+
+<br><br>
+<!-- Main Illustrative Figure -->
+<div style="text-align: center;">
+<img style="height: 100px;" alt="" src="./deep_learning_project_files/final_loss.png">
+<br>
+Final loss term
+</div>
+
+<br><br>
+The authors propose another change in the generator architecture to make sure that consecutive frames generated by the generator
+are not jittery. To do so, the generator architecture is modified to take in an image in addition to the
+pose. Therefore, the generator generates two consecutive images at each time step. Therefore, for any timestep t we run the generator twice. We initially pass in the pose at t-1 and a zero image to the generator to get the image at timestep t-1. We then take this image and the pose at timestep t to generate the image at timestep t. The discriminator now takes in those two generated images along with their poses and tries to decide whether the image at the current time step is real or not. This essentially forces the discriminator to not only determine whether the image is real, but to also ensure temporal coherence between the current and past image. <br><br>
+
+<br><br>
+<!-- Main Illustrative Figure -->
+<div style="text-align: center;">
+<img style="height: 150px;" alt="" src="./deep_learning_project_files/new_g.png">
+<img style="height: 200px;" alt="" src="./deep_learning_project_files/new_d.png">
+<br>
+Inputs to the new generator (left) and new discriminator (right)
+</div>
+<br><br>
+
+
+After training the generator network on the target subject, we look at the source video and calculate a pose for each frame.
+We then use the learned generator and pass in the calculated pose along with the previously generated image to generate the next output image.
+We do this for each frame in the source video and the resulting output frames give us the final video with the target.
+
+<br><br>
+<h4>What problems did you anticipate? What problems did you encounter? Did the very first thing you tried work?</h4>
+
+We initially thought that we would have issues with unstable GAN training and we might see issues like mode collapse etc. We also were a bit unsure on how the authors implemented temporal smoothing. It was a bit unclear from the section in the paper on which images the generator was being conditioned on during training. We were also a bit concerned on what kind of training data would work best for this scenario. For instance, it was not very clear if the training video had to be collected with a particular background or with any specific lighting conditions. <br><br>
+
+We ended up encountering quite a few issues. We had quite a few issues using the open source pose detector (OpenPose). Luckily, we came across an open-source Pytorch implementation from the authors of OpenPose which we could easily use. We also had to use a very small batch size (batch size of 3) as the models involved were pretty large. This considerably slowed down training and reduced the speed at which we could iterate.<br><br>
+
+The first thing we tried didn't work! :( We initially tried an approach where we were conditioning the generator on the past generated image and we realized that the original implementation wasn't quite doing this. We explain this and the second approach in greater detail in the next section.
+
+
+<br><br>
+<!-- Experiments and Results -->
+<h2>Experiment and Results</h2>
+<h4>How did you measure success? What experiments were used? What were the results, both quantitative and qualitative?
+        Did you succeed? Did you fail? Why?</h4>
+In this case, the measure for success is qualitative. Our hope was that the output videos created be reasonable, smooth, and
+closely resemble the poses in the source video. We decided to run the model on the videos that the authors of the paper tested on.
+Specifically, we let the source video be Bruno Mars's <a href="https://www.youtube.com/watch?v=PMivT7MJ41M">That’s What I
+Like</a> and compared our output video with the results by the authors. We also made sure to keep the source video the same
+when for both our baseline model (only Pix2PixHD) and the temporally smoothed model. This way, we could visually compare the outputs
+of our models to see which ones are qualitatively better. <br><br>
+
+The first output we generated were obtained after training the baseline model. This model uses the regular Pix2PixHD architecture, which
+makes use of GANs in a conditional setting. The generator took in a semantic map which in our case, was the pose obtained by passing
+the real image through OpenPose. The discriminator then tried to distinguish between the generated image and the real image, given the same
+pose. A problem we faced when training the GAN was that training was slow. Pix2PixHD makes use of multiple, heavy ResNet blocks so even
+increasing the batch size past 3 caused GPU memory constraints. However, as mentioned before, there were ~36000 frames in the dataset, so
+the quality of output after just 2 epochs was very reasonable. As mentioned before, we do not make use of quantitative results
+for this project. The output, to be compared qualitatively later, is shown below. Just as a note, OpenPose generates partial poses for the first few frames of the source video (possibly because of the text overlay), which is why the output video seems extremely jittery until the text disappears.<br><br>
+
+<div style="text-align: center;">
+<!-- <img style="height: 400px;" alt="" src="./deep_learning_project_files/output_epoch_2.gif"> -->
+<img style="height: 400px;" alt="" src="https://www.dropbox.com/s/zas7ow4gwazuuu5/output_epoch_2.gif?raw=1">
+
+
+<br>
+Baseline Model: Result of motion transfer from source-video (left) to target-subjects (right) after 2 epochs
+</div>
+
+<br><br>
+<div style="text-align: center;">
+<!-- <img style="height: 400px;" alt="" src="./deep_learning_project_files/output_epoch_16.gif"> -->
+<img style="height: 400px;" alt="" src="https://www.dropbox.com/s/tlraxm9anps4e5y/output_epoch_16.gif?raw=1">
+
+
+<br>
+Baseline Model: Result of motion transfer from source-video (left) to target-subjects (right) after 16 epochs
+</div>
+
+<br><br>
+In fact, we let the model run overnight upto 16 epochs. The results seem to deteriorate. Our belief is that this is not due to unstable
+GAN training, but rather due to global pose normalization issues. The height and the width of the source and target subjects are
+different, and more importantly, the source subject is standing further away from the camera in the source video than the target subject
+is in the training video. In such a case, some normalization will be required, perhaps by transforming the pose keypoints from the source
+to better agree with the shape and scale of the target subject. Since Bruno Mars is much smaller in the video, the pose generated is
+smaller, and the resulting generated image is also smaller. However, the generator also generates phantom limbs at the bottom of each
+frame, and this is a result of not doing this normalization. If we were to use global pose normalization, it would result in a bigger pose
+that more likely matched the size and shape of the target subject. <br><br>
+
+Next, we implemented the GAN architecture changes that the authors of the paper suggested. The generator was now run two times in
+succession and was conditioned on the pose as well as the previously generated image. The discriminator tries to distinguish between
+the 2 poses + 2 fake images, and the 2 poses + 2 real images, thereby enforcing temporal smoothing as well.<br><br>
+
+We were unsure of how the the original authors of the paper implemented the transfer step, as the
+explanation for this segment was vague. We know that for every time step t in the training process, the generator produced a fake image G(x<sub>t-1</sub>)
+conditioned on a pose P<sub>t-1</sub> and a zero image, and then passed the resulting fake image G(x<sub>t-1</sub>) along with the
+pose P<sub>t</sub> to obtain the fake image G(x<sub>t</sub>). During transfer time, however, 2 different approaches could be taken. <br><br>
+
+In the first approach, we ran the trained generator G in a linear fashion, passing in a new pose and the previously generated image
+at every time step.
+<ul>
+  <li> At t = 1, we pass in the first pose P<sub>1</sub> and a zero image, and obtain output frame G(x<sub>1</sub>). </li>
+  <li> At t = 2, we pass in the second pose P<sub>2</sub> and G(x<sub>1</sub>) to obtain output frame G(x<sub>2</sub>). </li>
+  <li> At t = 3, we pass in the third pose P<sub>3</sub> and G(x<sub>2</sub>) to obtain output frame G(x<sub>3</sub>). </li>
+  <li> And so on... </li>
+</ul>
+The result from this transfer pipeline is shown below:
+
+<div style="text-align: center;">
+<!-- <img style="height: 400px;" alt="" src="./deep_learning_project_files/output_ts_inference_v1_epoch_4.gif"> -->
+<img style="height: 400px;" alt="" src="https://www.dropbox.com/s/8c7x9pxk2x7ajnc/output_ts_inference_v1_epoch_4.gif?raw=1">
+
+<br>
+Approach 1: Result of motion transfer from source-video (left) to target-subjects (right) after model was trained for 4 epochs
+</div>
+
+<br><br>
+In the second approach, our transfer conditions more closely resembled the training conditions. For every time step t, the generator
+produced a fake image G(x<sub>t-1</sub>) conditioned on the pose P<sub>t-1</sub> and a zero image, and then passed the resulting fake
+image G(x<sub>t-1</sub>) along with the new pose P<sub>t</sub> to obtain the output image G(x<sub>t</sub>).
+<ul>
+  <li> At t = 1, we ignore the output as no previous pose exists. </li>
+  <li> At t = 2, we pass in P<sub>1</sub> and zero image to get G(x<sub>1</sub>). We then pass in P<sub>2</sub> and G(x<sub>1</sub>) to obtain the output frame. </li>
+  <li> At t = 3, we pass in P<sub>2</sub> and zero image to get G(x<sub>2</sub>). We then pass in P<sub>3</sub> and G(x<sub>2</sub>) to obtain the output frame. </li>
+  <li> And so on... </li>
+</ul>
+The result from this transfer pipeline is shown below:
+
+<div style="text-align: center;">
+<!-- <img style="height: 400px;" alt="" src="./deep_learning_project_files/output_ts_inference_v2_epoch_4.gif"> -->
+<img style="height: 400px;" alt="" src="https://www.dropbox.com/s/5i3uv9g3xn1z2g1/output_ts_inference_v2_epoch_4.gif?raw=1">
+<br>
+Approach 2: Result of motion transfer from source-video (left) to target-subjects (right) after model was trained for 4 epochs
+</div>
+
+
+<br><br>
+<!-- Final Thoughts -->
+<h3>Final Thoughts</h3>
+We see that adding temporal smoothing made the output much sharper and less jittery than the baseline. Therefore, this change seems to have made a significant change to the final output. Using the second inference approach showed better results as we can see much sharper images with this variant. However, we notice that there are still some weird artifacts in the generated image. For instance, we discussed earlier that there are phantom limbs at the bottom of the image and we hypothesize that adding in global pose normalization will help reduce these artifacts. We also observe that the quality of the generated face is not that great and the authors propose using a separate GAN to generate the faces. Therefore, adding this change might make the final output more realistic.
+
+<!--
+<br><br>
+<h2>Current Status</h2>
+<h4>Describe the list of tasks involved in your project per team member, and note what has
+already been accomplished and what is left to do.</h4>
+So far, we've read the paper in great detail, sketched out the pipeline, and decided on the best
+way to incrementally add features. The high level tasks remaining are:
+<ol>
+  <li>Training data collection and processing</li>
+  <li>Using OpenPose on training video to generate poses</li>
+  <li>Set up GAN and train</li>
+  <li>Implement Temporal smoothing</li>
+</ol>
+Taha will work on the temporal smoothing, Raghav will work on implementing OpenPose and GAN, and Vishvak will
+work on training the GAN and implementing temporal smoothing. The collection of training data should be relatively
+simple and can be done depending on the need. -->
+
+
+<!-- <br><br>
+<h2>Help</h2>
+<h4>Describe any problems you are encountering or anticipate encountering. Let us know if you
+are stuck or need any assistance/guidance that would help in making progress.</h4>
+
+We think the part of the pipeline regarding smoothing will be hard because it is not very clearly described in the paper and might be hard to reproduce. We also might have issues optimizing the adversarial loss and might face issues like mode collapse etc. The hyper-parameters are also not very elaborately discussed in the paper and it might require some tuning to find a good set of hyper-params. -->
+
+<!-- Footer -->
+<hr>
+<footer>
+<p>© Taha Merghani, Raghav Raj Mittal, Vishvak Murahari</p>
+</footer>
+
+</div>
+</div>
+</body></html>
