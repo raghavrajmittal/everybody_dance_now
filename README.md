@@ -8,5 +8,5 @@ https://github.gatech.edu/vmurahari3/Pytorch_everybody_dance_now
 
 <br>
 
-*Reference Paper* : https://arxiv.org/pdf/1808.07371.pdf  
-Caroline Chan, Shiry Ginosar, Tinghui Zhou and Alexei A. Efros Everybody Dance Now, ICCV 2019.
+**Reference Paper** : https://arxiv.org/pdf/1808.07371.pdf  
+Caroline Chan, Shiry Ginosar, Tinghui Zhou and Alexei A. Efros.*Everybody Dance Now*, ICCV 2019.
